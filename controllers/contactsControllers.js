@@ -3,7 +3,7 @@ import contactsService from '../services/contactsServices.js';
 
 export const getAllContacts = async (req, res, next) => {
     try {
-        const listContacts = await contactsService.listContacts();
+        const listContacts = await contactsService.listContacts(req.query);
 
         return res.status(200).json(listContacts);
     } catch (error) {

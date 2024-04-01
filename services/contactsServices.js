@@ -1,12 +1,19 @@
 import { Contact } from '../models/Contact.js';
 import HttpError from '../helpers/HttpError.js';
 
-const listContacts = async () => {
-    // const data = await fs.readFile(contactsPath);
-    const data = await Contact.find({});
+const listContacts = async (query) => {
+    const favorite = query.favorite;
+    let param = {};
+    if (favorite === 'true') {
+        param = { favorite: true };
+    } else if (favorite === 'false') {
+        param = { favorite: false };
+    }
+    const data = await Contact.find(param);
     if (!data) {
         throw HttpError(404);
     }
+
     return data;
 };
 

@@ -1,3 +1,3 @@
 # goit-node-rest-api
 
-## homework 3 - mongodb
+## homework 4 - auth
