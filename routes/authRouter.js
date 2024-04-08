@@ -3,6 +3,7 @@ import authController from '../controllers/authController.js';
 import { userSingSchema, userSubscription } from '../schemas/usersSchema.js';
 import validateBody from '../helpers/validateBody.js';
 import authenticate from '../middlewares/authenticate.js';
+import upload from '../middlewares/upload.js';
 
 const authRouter = express.Router();
 
@@ -23,6 +24,12 @@ authRouter.patch(
     validateBody(userSubscription),
     authenticate,
     authController.updateUserSubscription
+);
+authRouter.patch(
+    '/avatars',
+    authenticate,
+    upload.single('avatar'),
+    authController.updateAvatar
 );
 
 export default authRouter;

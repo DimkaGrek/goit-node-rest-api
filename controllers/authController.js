@@ -3,6 +3,12 @@ import authServices from '../services/authServices.js';
 import { User } from '../models/User.js';
 import HttpError from '../helpers/HttpError.js';
 import jwt from 'jsonwebtoken';
+import gravatar from 'gravatar';
+import path from 'path';
+import fs from 'fs/promises';
+import jimp from 'jimp';
+
+const avatarsDir = path.join('./', 'public', 'avatars');
 
 const signup = async (req, res, next) => {
     try {
@@ -16,9 +22,12 @@ const signup = async (req, res, next) => {
 
         const hashPassword = await bcrypt.hash(password, 10);
 
+        const avatarUrl = gravatar.url(email);
+
         const newUser = await User.create({
             ...req.body,
             password: hashPassword,
+            avatarUrl,
         });
 
         res.status(201).json({
@@ -117,10 +126,42 @@ const updateUserSubscription = async (req, res, next) => {
     }
 };
 
+const resizeImage = async (filename, width, height) => {
+    try {
+        const file = await jimp.read(filename);
+
+        await file.resize(width, height).writeAsync(filename);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+const updateAvatar = async (req, res, next) => {
+    try {
+        const { _id } = req.user;
+        const { path: tempUpload, filename } = req.file;
+        await resizeImage(tempUpload, 250, 250);
+        const avatarName = `${_id}_${filename}`;
+        const resultUpload = path.join(avatarsDir, avatarName);
+
+        await fs.rename(tempUpload, resultUpload);
+
+        const avatarUrl = path.join('avatars', avatarName);
+
+        await authServices.updateUser(_id, { avatarUrl });
+
+        res.json({ avatarUrl });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     signup,
     signin,
     getCurrent,
     signout,
     updateUserSubscription,
+    updateAvatar,
 };
