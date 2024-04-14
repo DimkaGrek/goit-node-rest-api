@@ -1,6 +1,10 @@
 import express from 'express';
 import authController from '../controllers/authController.js';
-import { userSingSchema, userSubscription } from '../schemas/usersSchema.js';
+import {
+    userSingSchema,
+    userSubscription,
+    verifyEmailSchema,
+} from '../schemas/usersSchema.js';
 import validateBody from '../helpers/validateBody.js';
 import authenticate from '../middlewares/authenticate.js';
 import upload from '../middlewares/upload.js';
@@ -12,6 +16,13 @@ authRouter.post(
     '/register',
     validateBody(userSingSchema),
     authController.signup
+);
+authRouter.get('/verify/:verificationToken', authController.verify);
+
+authRouter.post(
+    '/verify',
+    validateBody(verifyEmailSchema),
+    authController.resendEmail
 );
 
 // sign in

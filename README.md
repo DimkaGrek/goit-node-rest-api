@@ -1,3 +1,3 @@
 # goit-node-rest-api
 
-## homework 5 - upload image
+## homework 6 - email

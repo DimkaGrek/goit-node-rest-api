@@ -7,6 +7,8 @@ import gravatar from 'gravatar';
 import path from 'path';
 import fs from 'fs/promises';
 import jimp from 'jimp';
+import { nanoid } from 'nanoid';
+import MailService from '../services/MailService.js';
 
 const avatarsDir = path.join('./', 'public', 'avatars');
 
@@ -24,10 +26,18 @@ const signup = async (req, res, next) => {
 
         const avatarUrl = gravatar.url(email);
 
+        const verificationToken = nanoid();
+
+        await MailService.sendActivationMail(
+            email,
+            `${process.env.API_URL}:${process.env.PORT}${process.env.API_PREFIX}/users/verify/${verificationToken}`
+        );
+
         const newUser = await User.create({
             ...req.body,
             password: hashPassword,
             avatarUrl,
+            verificationToken,
         });
 
         res.status(201).json({
@@ -47,6 +57,10 @@ const signin = async (req, res, next) => {
 
         if (!user) {
             throw HttpError(401, 'Email or password wrong');
+        }
+
+        if (!user.verify) {
+            throw HttpError(403, 'User is not yet verified');
         }
 
         const comparePassword = await authServices.validatePassword(
@@ -77,6 +91,50 @@ const signin = async (req, res, next) => {
         res.json({
             token: token,
             user: userDTO,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const verify = async (req, res, next) => {
+    try {
+        const { verificationToken } = req.params;
+        const user = await User.findOne({ verificationToken });
+        if (!user) {
+            throw HttpError(404);
+        }
+        await User.findByIdAndUpdate(user._id, {
+            verify: true,
+            verificationToken: '',
+        });
+
+        res.json({
+            message: 'Email verify success',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const resendEmail = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            throw HttpError(404);
+        }
+        if (user.verify) {
+            throw HttpError(400, 'Verification has already been passed');
+        }
+
+        await MailService.sendActivationMail(
+            email,
+            `${process.env.API_URL}:${process.env.PORT}${process.env.API_PREFIX}/users/verify/${user.verificationToken}`
+        );
+
+        res.json({
+            message: 'Email send success',
         });
     } catch (error) {
         next(error);
@@ -164,4 +222,6 @@ export default {
     signout,
     updateUserSubscription,
     updateAvatar,
+    verify,
+    resendEmail,
 };
